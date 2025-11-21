@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlanAlert - Student Study Companion</title>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- React Router -->
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --glass: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --error: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            outline: none;
+            font-family: inherit;
+        }
+
+        /* Utilities */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .page-container {
+            min-height: 100vh;
+            padding: 2rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .input-field {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { HashRouter, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+        // --- ICONS (Simplified SVGs) ---
+        const Icon = ({ d, size = 24, color = 'currentColor', ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <path d={d} />
+            </svg>
+        );
+
+        const Icons = {
+            Mail: (props) => <Icon d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6" {...props} />,
+            Lock: (props) => <Icon d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-7-4a3 3 0 0 1 3 3v1H9V7a3 3 0 0 1 3-3z" {...props} />,
+            LogIn: (props) => <Icon d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4 M10 17l5-5-5-5 M15 12H3" {...props} />,
+            User: (props) => <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" {...props} />,
+            UserPlus: (props) => <Icon d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M20 8v6 M23 11h-6" {...props} />,
+            LayoutDashboard: (props) => <Icon d="M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z" {...props} />,
+            BookOpen: (props) => <Icon d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" {...props} />,
+            HelpCircle: (props) => <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3 M12 17h.01" {...props} />,
+            LogOut: (props) => <Icon d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9" {...props} />,
+            Bell: (props) => <Icon d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0" {...props} />,
+            Search: (props) => <Icon d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z" {...props} />,
+            Clock: (props) => <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2" {...props} />,
+            AlertCircle: (props) => <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8v4 M12 16h.01" {...props} />,
+            Send: (props) => <Icon d="M22 2L11 13 M22 2l-7 20-4-9-9-4 20-7z" {...props} />,
+            Book: (props) => <Icon d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" {...props} />,
+            Award: (props) => <Icon d="M12 15l-2 5l2 5l2-5l-2-5z M12 15a7 7 0 1 0 0-14a7 7 0 0 0 0 14z" {...props} />,
+            ChevronDown: (props) => <Icon d="M6 9l6 6 6-6" {...props} />,
+            Video: (props) => <Icon d="M23 7l-7 5 7 5V7z M14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z" {...props} />,
+            FileText: (props) => <Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" {...props} />,
+            PlayCircle: (props) => <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M10 8l6 4-6 4V8z" {...props} />,
+            Filter: (props) => <Icon d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" {...props} />,
+            X: (props) => <Icon d="M18 6L6 18 M6 6l12 12" {...props} />,
+            CheckCircle: (props) => <Icon d="M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4L12 14.01l-3-3" {...props} />,
+            XCircle: (props) => <Icon d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M15 9l-6 6 M9 9l6 6" {...props} />,
+            AlertTriangle: (props) => <Icon d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01" {...props} />
+        };
+
+        // --- MOCK DATA ---
+        const categories = [
+            {
+                id: 'engineering', name: 'Engineering', degrees: [
+                    { id: 'cse', name: 'B.Tech Computer Science', subjects: ['Data Structures', 'Algorithms', 'Operating Systems', 'Database Management', 'Computer Networks', 'Web Development', 'Artificial Intelligence'] },
+                    { id: 'ece', name: 'B.Tech Electronics', subjects: ['Digital Electronics', 'Signals & Systems', 'Microprocessors', 'Analog Circuits', 'Control Systems'] },
+                    { id: 'mech', name: 'B.Tech Mechanical', subjects: ['Thermodynamics', 'Fluid Mechanics', 'Machine Design', 'Manufacturing Process', 'Heat Transfer'] }
+                ]
+            },
+            {
+                id: 'medical', name: 'Medical', degrees: [
+                    { id: 'mbbs', name: 'MBBS', subjects: ['Anatomy', 'Physiology', 'Biochemistry', 'Pharmacology', 'Pathology', 'Microbiology'] },
+                    { id: 'bds', name: 'BDS (Dental)', subjects: ['Dental Anatomy', 'Oral Histology', 'General Pathology', 'Oral Surgery'] }
+                ]
+            },
+            {
+                id: 'arts', name: 'Arts & Humanities', degrees: [
+                    { id: 'ba_hist', name: 'BA History', subjects: ['Ancient History', 'Medieval History', 'Modern World History', 'Archaeology'] },
+                    { id: 'ba_pol', name: 'BA Political Science', subjects: ['Political Theory', 'International Relations', 'Public Administration', 'Indian Constitution'] }
+                ]
+            },
+            {
+                id: 'commerce', name: 'Commerce', degrees: [
+                    { id: 'bcom', name: 'B.Com', subjects: ['Financial Accounting', 'Business Law', 'Economics', 'Taxation', 'Auditing'] },
+                    { id: 'bba', name: 'BBA', subjects: ['Management Principles', 'Marketing', 'Human Resources', 'Business Statistics'] }
+                ]
+            }
+        ];
+
+        const resourcesData = [
+            { title: 'Data Structures Masterclass', subject: 'Data Structures', type: 'video', language: 'English', duration: '45:00' },
+            { title: 'Introduction to Algorithms', subject: 'Algorithms', type: 'note', language: 'English', format: 'PDF' },
+            { title: 'React JS Full Course', subject: 'Web Development', type: 'video', language: 'Hindi', duration: '2:30:00' },
+            { title: 'OS Concepts', subject: 'Operating Systems', type: 'note', language: 'Spanish', format: 'DOCX' },
+            { title: 'Human Anatomy 3D', subject: 'Anatomy', type: 'video', language: 'English', duration: '1:15:00' },
+            { title: 'Pharmacology Basics', subject: 'Pharmacology', type: 'note', language: 'English', format: 'PDF' },
+            { title: 'Genetics Overview', subject: 'Genetics', type: 'video', language: 'English', duration: '40:00' },
+            { title: 'World War II Documentary', subject: 'Modern World History', type: 'video', language: 'English', duration: '50:00' },
+            { title: 'Ancient Civilizations: Egypt', subject: 'Ancient Civilizations', type: 'note', language: 'English', format: 'PDF' },
+            { title: 'Shakespearean Tragedy', subject: 'Shakespeare', type: 'video', language: 'English', duration: '1:00:00' },
+            { title: 'Accounting 101', subject: 'Financial Accounting', type: 'video', language: 'English', duration: '30:00' },
+            { title: 'Marketing Strategies', subject: 'Marketing', type: 'note', language: 'French', format: 'PDF' },
+            { title: 'Calculus I: Limits', subject: 'Calculus', type: 'video', language: 'English', duration: '1:20:00' },
+            { title: 'Linear Algebra Vectors', subject: 'Linear Algebra', type: 'note', language: 'English', format: 'PDF' },
+            { title: 'Thermodynamics Laws', subject: 'Thermodynamics', type: 'video', language: 'English', duration: '55:00' },
+            { title: 'Newtonian Mechanics', subject: 'Mechanics', type: 'note', language: 'English', format: 'PDF' },
+            { title: 'Organic Chemistry Basics', subject: 'Organic Chemistry', type: 'video', language: 'English', duration: '1:45:00' },
+            { title: 'Inorganic Chemistry Periodic Table', subject: 'Inorganic Chemistry', type: 'note', language: 'English', format: 'PDF' }
+        ];
+
+        // --- AI LOGIC ---
+        const generateTimetable = (goal, selectedDegree) => {
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            if (!selectedDegree) {
+                return days.map(day => ({
+                    day, subject: 'General Study', time: '10:00 AM - 12:00 PM', details: 'Please select a course to get a specific plan.', link: '/resources'
+                }));
+            }
+            const subjects = selectedDegree.subjects;
+            const topicMap = {
+                "Mathematics": ["Calculus", "Linear Algebra", "Probability", "Statistics", "Differential Equations"],
+                "Physics": ["Mechanics", "Thermodynamics", "Electromagnetism", "Optics", "Quantum Physics"],
+                "Chemistry": ["Organic Chemistry", "Inorganic Chemistry", "Physical Chemistry", "Biochemistry"],
+                "Computer Science": ["Data Structures", "Algorithms", "Database Systems", "Operating Systems", "Networks"],
+                "Biology": ["Genetics", "Cell Biology", "Ecology", "Evolution"],
+                "History": ["World War II", "Ancient Civilizations", "Modern History", "Cold War"],
+                "Literature": ["Shakespeare", "Modern Poetry", "Classic Novels", "Literary Analysis"]
+            };
+            return days.map(day => {
+                const subject = subjects[Math.floor(Math.random() * subjects.length)];
+                const topics = topicMap[subject] || ["Core Concepts", "Advanced Theory", "Practical Applications", "Case Studies"];
+                const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+                return {
+                    day, subject, topic: randomTopic, time: '10:00 AM - 01:00 PM',
+                    details: `Focus on ${randomTopic}. ${goal ? `Align this with your goal: "${goal}"` : ''}`,
+                    link: `/resources?subject=${encodeURIComponent(subject)}`
+                };
+            });
+        };
+
+        const generateWeeklyTest = (subject) => {
+            return [
+                { id: 1, question: `What is a key concept in ${subject}?`, options: ["Concept A", "Concept B", "Concept C", "None of the above"], correct: 0 },
+                { id: 2, question: "Which of the following is true?", options: ["Statement 1", "Statement 2", "Statement 3", "Statement 4"], correct: 1 },
+                { id: 3, question: "Advanced application involves:", options: ["Method X", "Method Y", "Method Z", "All of the above"], correct: 3 }
+
+        const currentDegrees = selectedCategory ? categories.find(c => c.id === selectedCategory)?.degrees || [] : [];
+
+            return (
+                <div className="app-container" style={{ background: 'var(--background)', minHeight: '100vh' }}>
+                    <Sidebar />
+                    <Header />
+                    <main style={{ marginLeft: '250px', paddingTop: '100px', paddingRight: '2rem', paddingLeft: '2rem', paddingBottom: '2rem' }}>
+                        <div className="animate-fade-in">
+                            <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Dashboard</h1>
+                            <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                                <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Icons.Book size={24} color="var(--secondary)" /> Select Your Course
+                                </h2>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Category</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <select className="input-field" value={selectedCategory} onChange={handleCategoryChange} style={{ appearance: 'none', cursor: 'pointer' }}>
+                                                <option value="">-- Select Category --</option>
+                                                {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                                            </select>
+                                            <Icons.ChevronDown size={20} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Degree</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <select className="input-field" value={selectedDegree} onChange={(e) => setSelectedDegree(e.target.value)} disabled={!selectedCategory} style={{ appearance: 'none', cursor: 'pointer', opacity: !selectedCategory ? 0.5 : 1 }}>
+                                                <option value="">-- Select Degree --</option>
+                                                {currentDegrees.map(deg => <option key={deg.id} value={deg.id}>{deg.name}</option>)}
+                                            </select>
+                                            <Icons.ChevronDown size={20} style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                                <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Icons.Send size={24} color="var(--primary)" /> What's your goal for this week?
+                                </h2>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <textarea className="input-field" placeholder="e.g., I want to focus on Thermodynamics..." rows="3" value={goal} onChange={(e) => setGoal(e.target.value)} style={{ resize: 'none' }} />
+                                    <button className="btn-primary" onClick={handleGeneratePlan} style={{ height: 'fit-content', alignSelf: 'flex-end' }}>Generate Plan</button>
+                                </div>
+                            </div>
+                            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', background: 'linear-gradient(to right, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Weekly Knowledge Check</h3>
+                                    <p style={{ color: 'var(--text-muted)' }}>Take your weekly test to get personalized AI recommendations.</p>
+                                </div>
+                                <Link to="/test" className="btn-primary">Take Test</Link>
+                            </div>
+                            {timetable && (
+                                <div className="glass-panel animate-fade-in" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                                    <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Your Weekly Plan</h2>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                                        {timetable.map((item, index) => (
+                                            <div key={index} style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                <div style={{ fontWeight: 'bold', color: 'var(--primary)' }}>{item.day}</div>
+                                                <div style={{ fontSize: '1.1rem', margin: '0.5rem 0', fontWeight: '600' }}>{item.subject}</div>
+                                                {item.topic && <div style={{ fontSize: '0.95rem', color: 'var(--secondary)', marginBottom: '0.5rem' }}>Topic: {item.topic}</div>}
+                                                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{item.time}</div>
+                                                <div style={{ fontSize: '0.85rem', margin: '0.5rem 0', fontStyle: 'italic', color: 'var(--text-muted)' }}>{item.details}</div>
+                                                {item.link && <Link to={item.link} style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--primary)', fontWeight: '500' }}>View Resources &rarr;</Link>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const Resources = () => {
+            const [activeTab, setActiveTab] = useState('notes');
+            const [selectedLanguage, setSelectedLanguage] = useState('All');
+            const [userDegree, setUserDegree] = useState(null);
+            const [selectedSubject, setSelectedSubject] = useState(null);
+            const location = useLocation();
+
+            useEffect(() => {
+                const storedDegree = localStorage.getItem('selectedDegree');
+                if (storedDegree) setUserDegree(JSON.parse(storedDegree));
+                const params = new URLSearchParams(location.search);
+                const subjectParam = params.get('subject');
+                if (subjectParam) setSelectedSubject(subjectParam);
+            }, [location]);
+
+            const filteredResources = resourcesData.filter(res => {
+                const typeMatch = activeTab === 'notes' ? res.type === 'note' : res.type === 'video';
+                const langMatch = selectedLanguage === 'All' || res.language === selectedLanguage;
+                let subjectMatch = true;
+                if (selectedSubject) subjectMatch = res.subject === selectedSubject;
+                else if (userDegree) subjectMatch = userDegree.subjects.includes(res.subject);
+                return typeMatch && langMatch && subjectMatch;
+            });
+
+            return (
+                <div className="app-container" style={{ background: 'var(--background)', minHeight: '100vh' }}>
+                    <Sidebar />
+                    <Header />
+                    <main style={{ marginLeft: '250px', paddingTop: '100px', paddingRight: '2rem', paddingLeft: '2rem', paddingBottom: '2rem' }}>
+                        <div className="animate-fade-in">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                                <h1 style={{ fontSize: '2rem' }}>Learning Resources</h1>
+                                {selectedSubject ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: 'var(--primary)', borderRadius: '20px', fontSize: '0.9rem', color: 'white' }}>
+                                        Filtered by: {selectedSubject}
+                                        <button onClick={() => setSelectedSubject(null)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', display: 'flex' }}><Icons.X size={16} /></button>
+                                    </div>
+                                ) : userDegree && (
+                                    <div style={{ padding: '0.5rem 1rem', background: 'var(--surface)', borderRadius: '20px', fontSize: '0.9rem', color: 'var(--primary)', border: '1px solid var(--primary)' }}>Filtered for: {userDegree.name}</div>
+                                )}
+                            </div>
+                            <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button onClick={() => setActiveTab('notes')} className={activeTab === 'notes' ? 'btn-primary' : ''} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', background: activeTab === 'notes' ? '' : 'var(--surface)', color: activeTab === 'notes' ? 'white' : 'var(--text-muted)', border: activeTab === 'notes' ? 'none' : '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Icons.BookOpen size={18} /> Notes
+                                    </button>
+                                    <button onClick={() => setActiveTab('videos')} className={activeTab === 'videos' ? 'btn-primary' : ''} style={{ padding: '0.5rem 1.5rem', borderRadius: '8px', background: activeTab === 'videos' ? '' : 'var(--surface)', color: activeTab === 'videos' ? 'white' : 'var(--text-muted)', border: activeTab === 'videos' ? 'none' : '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <Icons.Video size={18} /> Videos
+                                    </button>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Icons.Filter size={18} color="var(--text-muted)" />
+                                    <select className="input-field" value={selectedLanguage} onChange={(e) => setSelectedLanguage(e.target.value)} style={{ width: 'auto', padding: '0.5rem 2rem 0.5rem 1rem' }}>
+                                        {['All', 'English', 'Hindi', 'Spanish', 'French'].map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                {filteredResources.length > 0 ? filteredResources.map((res, index) => (
+                                    <div key={index} className="glass-panel" style={{ padding: '1.5rem', display: 'flex', alignItems: 'start', gap: '1rem', transition: 'transform 0.2s' }}>
+                                        <div style={{ padding: '0.75rem', background: activeTab === 'notes' ? 'rgba(99, 102, 241, 0.1)' : 'rgba(236, 72, 153, 0.1)', borderRadius: '8px', color: activeTab === 'notes' ? 'var(--primary)' : 'var(--secondary)' }}>
+                                            {activeTab === 'notes' ? <Icons.FileText size={24} /> : <Icons.PlayCircle size={24} />}
+                                        </div>
+                                        <div>
+                                            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>{res.title}</h3>
+                                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{res.subject}</p>
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.8rem', background: 'var(--surface)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{res.language}</span>
+                                                <span style={{ fontSize: '0.8rem', background: 'var(--surface)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{activeTab === 'notes' ? res.format : res.duration}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}><p>No resources found.</p></div>}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const Test = () => {
+            const [started, setStarted] = useState(false);
+            const [questions, setQuestions] = useState([]);
+            const [answers, setAnswers] = useState({});
+            const [submitted, setSubmitted] = useState(false);
+            const [score, setScore] = useState(0);
+            const navigate = useNavigate();
+
+            const startTest = () => {
+                const q = generateWeeklyTest('React');
+                setQuestions(q);
+                setStarted(true);
+            };
+
+            const handleAnswer = (qId, optionIndex) => {
+                setAnswers(prev => ({ ...prev, [qId]: optionIndex }));
+            };
+
+            const submitTest = () => {
+                let newScore = 0;
+                questions.forEach(q => { if (answers[q.id] === q.correct) newScore++; });
+                setScore(newScore);
+                setSubmitted(true);
+            };
+
+            return (
+                <div className="app-container" style={{ background: 'var(--background)', minHeight: '100vh' }}>
+                    <Sidebar />
+                    <Header />
+                    <main style={{ marginLeft: '250px', paddingTop: '100px', paddingRight: '2rem', paddingLeft: '2rem', paddingBottom: '2rem' }}>
+                        <div className="animate-fade-in">
+                            <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Weekly Knowledge Check</h1>
+                            {!started ? (
+                                <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                                    <Icons.AlertTriangle size={48} color="var(--accent)" style={{ marginBottom: '1rem' }} />
+                                    <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Ready for your weekly test?</h2>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>This test consists of 10-15 questions to assess your progress.</p>
+                                    <button className="btn-primary" onClick={startTest}>Start Test</button>
+                                </div>
+                            ) : !submitted ? (
+                                <div className="glass-panel" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+                                    {questions.map((q, index) => (
+                                        <div key={q.id} style={{ marginBottom: '2rem' }}>
+                                            <h3 style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>{index + 1}. {q.question}</h3>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                {q.options.map((opt, i) => (
+                                                    <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: answers[q.id] === i ? 'rgba(99, 102, 241, 0.2)' : 'var(--surface)', borderRadius: '8px', cursor: 'pointer', border: answers[q.id] === i ? '1px solid var(--primary)' : '1px solid var(--border)' }}>
+                                                        <input type="radio" name={`q-${q.id}`} checked={answers[q.id] === i} onChange={() => handleAnswer(q.id, i)} style={{ accentColor: 'var(--primary)' }} /> {opt}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button className="btn-primary" onClick={submitTest} style={{ width: '100%' }}>Submit Answers</button>
+                                </div>
+                            ) : (
+                                <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+                                    <div style={{ marginBottom: '1rem' }}>{score === questions.length ? <Icons.CheckCircle size={48} color="#10b981" /> : <Icons.AlertTriangle size={48} color="var(--secondary)" />}</div>
+                                    <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Test Completed!</h2>
+                                    <p style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--primary)', marginBottom: '1rem' }}>Your Score: {score} / {questions.length}</p>
+                                    <button className="btn-primary" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const Support = () => (
+            <div className="app-container" style={{ background: 'var(--background)', minHeight: '100vh' }}>
+                <Sidebar />
+                <Header />
+                <main style={{ marginLeft: '250px', paddingTop: '100px', paddingRight: '2rem', paddingLeft: '2rem', paddingBottom: '2rem' }}>
+                    <div className="animate-fade-in">
+                        <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Support</h1>
+                        <div className="glass-panel" style={{ padding: '2rem' }}><p>Contact support@planalert.com for help.</p></div>
+                    </div>
+                </main>
+            </div>
+        );
+
+        const Landing = () => {
+            return (
+                <div className="app-container" style={{ background: 'var(--background)', minHeight: '100vh', color: 'var(--text)' }}>
+                    <nav style={{ padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1200px', margin: '0 auto' }}>
+                        <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', background: 'linear-gradient(to right, var(--primary), var(--secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>PlanAlert</h1>
+                        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                            <Link to="/login" style={{ fontWeight: '500', color: 'var(--text-muted)', transition: 'color 0.2s' }}>Login</Link>
+                            <Link to="/register" className="btn-primary">Get Started</Link>
+                        </div>
+                    </nav>
+
+                    <header style={{ textAlign: 'center', padding: '6rem 2rem', maxWidth: '800px', margin: '0 auto' }}>
+                        <div className="animate-fade-in">
+                            <h1 style={{ fontSize: '3.5rem', fontWeight: '800', lineHeight: '1.2', marginBottom: '1.5rem' }}>
+                                Master Your Studies with <span style={{ color: 'var(--primary)' }}>AI-Powered</span> Planning
+                            </h1>
+                            <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', marginBottom: '3rem', lineHeight: '1.6' }}>
+                                PlanAlert creates personalized study schedules, tracks your progress, and provides curated resources tailored to your degree and goals.
+                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                                <Link to="/register" className="btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}>
+                                    Start Learning Now <Icons.ChevronDown style={{ transform: 'rotate(-90deg)' }} size={20} />
+                                </Link>
+                            </div>
+                        </div>
+                    </header>
+
+                    <section style={{ padding: '4rem 2rem', maxWidth: '1200px', margin: '0 auto' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                            <div className="glass-panel" style={{ padding: '2rem', transition: 'transform 0.3s' }}>
+                                <div style={{ marginBottom: '1.5rem', background: 'var(--surface)', width: 'fit-content', padding: '1rem', borderRadius: '12px' }}>
+                                    <Icons.Clock size={32} color="var(--primary)" />
+                                </div>
+                                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: '600' }}>Smart Scheduling</h3>
+                                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>Get a weekly timetable generated instantly based on your specific goals and available time.</p>
+                            </div>
+                            <div className="glass-panel" style={{ padding: '2rem', transition: 'transform 0.3s' }}>
+                                <div style={{ marginBottom: '1.5rem', background: 'var(--surface)', width: 'fit-content', padding: '1rem', borderRadius: '12px' }}>
+                                    <Icons.BookOpen size={32} color="var(--secondary)" />
+                                </div>
+                                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: '600' }}>Curated Resources</h3>
+                                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>Access notes and video tutorials filtered specifically for your course and subject.</p>
+                            </div>
+                            <div className="glass-panel" style={{ padding: '2rem', transition: 'transform 0.3s' }}>
+                                <div style={{ marginBottom: '1.5rem', background: 'var(--surface)', width: 'fit-content', padding: '1rem', borderRadius: '12px' }}>
+                                    <Icons.Award size={32} color="var(--accent)" />
+                                </div>
+                                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', fontWeight: '600' }}>Weekly Tests</h3>
+                                <p style={{ color: 'var(--text-muted)', lineHeight: '1.6' }}>Test your knowledge with AI-generated quizzes and get personalized improvement tips.</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <footer style={{ textAlign: 'center', padding: '4rem 2rem', borderTop: '1px solid var(--border)', marginTop: '4rem', color: 'var(--text-muted)' }}>
+                        <p>&copy; 2025 PlanAlert. All rights reserved.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const App = () => {
+            return (
+                <HashRouter>
+                    <Routes>
+                        <Route path="/" element={<Landing />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/resources" element={<Resources />} />
+                        <Route path="/test" element={<Test />} />
+                        <Route path="/support" element={<Support />} />
+                    </Routes>
+                </HashRouter>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
